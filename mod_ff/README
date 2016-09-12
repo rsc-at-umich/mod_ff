@@ -1,0 +1,42 @@
+mod_ff (The Fat Finder Module) is an an Apache 2.x module
+suitable for monitoring the growth of Apache child processes.
+It also offers the possibility of terminating "overlarge" Apache child
+processes (at the end of the HTTP/HTTPS request.)
+
+It is intended to help large scale shared virtual hosting operations 
+to prevent one web site from consuming excessive resources (in particular, VM)
+for extensive periods of time by allowing requests to run to completion but
+then be cleaned up by the normal Apache / Unix process termination cleanup.
+
+resources can be monitored or identified by:
+
+Virtual memory (vmsize or rss)
+CPU time (either system/kernel or user)
+page faults (major or minor, or even by sub-children of the Apache process)
+File descriptor counts
+
+See the file "load_mod_ff" for more details.
+
+There is also a companion utility "procinfo" that displays the kind of information
+named here.
+
+This is designed for Linux systems with a "/proc" filesystem.  Some support for
+FreeBSD is available, but has not been extensively tested.
+
+This software is nearly complete, except for the install target on the Makefile (sorry.)
+
+To build/install:
+
+./configure
+
+make
+
+# Then, by hand, copy "./libs/libmod_ff.so.0.0.0" to where you want the Apache module
+# to be installed as, such as "/usr/libexec/apache2/mod_ff.so", etc.
+
+# The "./procinf" program can be installed or not as you see fit. It's not especially
+# usefull as it just replicates better functionality in "top" and "ps".
+
+The file "load_mod_ff" contains example Apache configuration directives to load the
+module and comments about what each of the directives offers.
+

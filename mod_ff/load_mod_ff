@@ -1,0 +1,196 @@
+# Copyright (c) 2012-2013 by the Regents of the University of Michigan
+#    All Rights Reserved
+#
+# The Fat Finder Apache 2.x module.
+#
+# Load an Apache 2.2.x  module (and only load it.)
+
+<IfModule !mod_ff.c>
+    LoadModule	ff_module	/usr/libexec/apache2/mod_ff.so
+</IfModule>
+
+
+# Fat Finder requires that the "proc" pseudo-filesystem (on Linux) be mounted
+# (typically at "/proc") or the "linprocfs" pseudo-filesystem on FreeBSD be
+# mounted at "/compat/linux/proc")
+#
+# This module has a somewhat simplified concept of a session - there's a number
+# of tuning values for determining a session, such as using source TCP Ports 
+# (disabled by default due to Apache's scheme of passing connection file descriptors
+# between children), and the use of a nameable session cookie.
+#
+# As sessions also use the 'source ip address', it's possible to select alternate
+# sources for that 'source ip address' such as the first (or last) HTTP header value
+# such as "x-Forwarded-for" (where the values are separated by commas.)
+# Alternately, environment variables set by other modules can be used for the 'source ip address'
+#
+# Note: The 'source ip address' described here has NO effect on other parts of Apache.
+#
+#
+# OS/X, AIX, and Solaris are not (yet) supported.  
+#
+# Directives:
+#
+# FFCheckOverhead [on|OFF] - Same as FFCHECKOVERHEADREQUEST, FFCHECKOVERHEADIDLE,
+#				and FFCHECKOVERHEADCHILD all together
+# FFCheckOverheadRequest [on|OFF] - Use 'getrusage()' to determine the request 
+#				overhead of mod_ff.c (note: Some systems don't fully
+#				populate the structure returned by getrusage() .)
+# FFCheckOverheadIdle [on|OFF] - Use 'getrusage()' to determine the idle overhead
+#				of mod_ff.c
+# FFCheckOverheadChild [on|OFF] - Use 'getrusage()' to determine the total
+#				(per. child) overhead of mod_ff.c
+# FFCheckOverheadSession [on|OFF] - Use 'getrusage()' to determine the total
+#				(per. child) overhead of mod_ff.c
+#
+# FFCleanup [on|OFF]   - Release /proc/self/.. file descriptors agressively.
+#
+# FFDumpEnv [on|OFF] - Flood error logs with GET/POST value pairs (if on).  Crude request debugging.
+#
+# FFDumpHeaders [on|OFF] - Flood error logs with request headers (if on).  Crude request debugging.
+#
+# FFEnable [on|OFF]    - Turn on / off mod_ff processing for this vhost/file/directory
+#
+# FFExtended [on|OFF   - Log extended file descriptor changes
+#
+# FFIgnoreStatus [NONE|connection-drops|<status_code>|-<status_code>
+#  				- Ignore requests having a particular status code,
+#				  or remove a particular status code from being
+#				  ignored (for FF processing)
+#
+# FFRemoteIPSource [NONE|@remote_ip|$<environ_variable>|+<http_header_first_value>|
+#				-<http_header_last_value>]
+#			  - How to determine 'remote ip address' (see above)
+#			  - Involved in 'session' management.
+#
+# FFLabel   <word>	  - Arbitrary word for labeling logs  
+#
+# FFLogMain [on|OFF]	  - Turn off additional logging (somewhat problematic)
+#
+# FFLoopback [ON|off]  - (deprecated due to "internal" tracking.)
+#
+# FFRemoteTCPPort [on|OFF] - Turn on/off use of requestor's TCP Port as part
+# 		  	   of session management.
+#
+# FFInternal [on|OFF]	- Whether to ignore 'internal' requests Apache seems to
+# 	     		generate for book-keeping purposes.
+#
+# FFDebugConfig [on|OFF] - Debug configuration management & inheritance.
+#
+# FFDebugProcInfo [on|OFF] - Debugging of underlying 'procinfo' routines
+# 		  	 that scan /proc/self/ for data.
+#
+# FFDebugPosition [on|OFF] - Debugging of underlying position management code,
+# 		  	   part of session management.
+#
+# FFDebugSession [on|OFF] - Debugging of underlying session management code.
+#
+# FFSessionCookieName [NONE|<string>] - A cookie to use for 'session' management.
+#
+# FFResetExit [all|request|idle|child] - Reset FFExit<xx> thresholds.
+#
+# FFResetWarn [all|request|idle|child] - Reset FFWARN<xx> thresholds.
+#
+# FFProcFs  <pathname> - Provide alternative for "/proc"
+#				 (or "/compat/linux/proc" on FreeBSD)
+#		Note:	    "/proc"  is used because Linux kernels don't
+#			    fully implement 'getrusage()'"	
+#  
+# FFSuppressChildOverhead <count> - When "child overhead" doesn't change, 
+#				don't log this many consecutive ones 
+#
+# FFTimefmt <string>	    - strftime string format for when time values
+#				 exceed 1 year, defaults to '%c'
+#   
+# FFVerbose [on|OFF]	    - Display all counters & thresholds, not just non-zero.
+#
+# FFWatch   [on|OFF]	    - Same as FFWATCHREQUEST, FFWATCHIDLE, FFWATCHCHILD together.
+#
+# FFWatchRequest [on|OFF]  - Log counters (see below <item>s) on a per-request basis
+#
+# FFWatchIdle [on|OFF]   - Log counters (see below <item>s) on a idle transitions.
+#
+# FFWatchChild [on|OFF]    - Log counter per. child rtotals (see below <item>s).
+#
+# FFMaxRequestsPerChild <number> - Exit after this many requests (like core config)
+#
+# FFMaxRequestsPerSession <number> - Exit after this many requests on a session 
+#
+# Documentation for /proc/[pid]/stat (in Linux) can be found at:
+# 		   http://www.kernel.org/doc/man-pages/online/pages/man5/proc.5.html
+#
+# For the following directives, <item> can be one of:
+#    vmsize	          - Virtual Memory size, per. /proc/[pid]/stat
+#    rss		  - Resident Set Size, per. /proc/[pid]/stat
+#    utime		  - User Time jiffies, per. /proc/[pid]/stat
+#    stime		  - Kernel (system) time jiffies, per. /proc/[pid]/stat
+#    cutime		  - Child user time jiffies, per. /proc/[pid]/stat
+#    cstime		  - Child kernel (system) time jiffies, per. /proc/[pid]/stat
+#    minflt		  - Minor faults, per. /proc/[pid]/stat
+#    majflt		  - Major faults, per. /proc/[pid]/stat
+#    cminflt		  - Child minor faults, per. /proc/[pid]/stat
+#    cmajflt		  - Child minor faults, per. /proc/[pid]/stat
+#    fds		  - File descriptors by count of directory entries in
+#			      /proc/[pid]/fd  - excluding "." and ".."
+#    tick		  - Wall clock time from 'time(NULL)' (seconds)
+#
+# 'tick' can have the suffices "s" or "seconds", "m", "min", "minute", or "minutes",
+#  	    "h", "hour", or "hours", "d", "day", or "days", "w", "week", or "weeks".  I.e.:
+#	    	 1day
+#
+# The other values can have suffices of:
+# 	    "k" (1024), "K" (1000), "m" (1024*1024), "M" (1000000), "g" (1024*1024*1024),
+#	    		 "G" (1000000000)
+#
+#	Don't use these for "fds" - it doesn't make sense.
+#	
+#  
+# FFWarnRequest <item> <value>	
+# 		 This warns if the "item" changes by "value" (or more) between the begining
+#		      of the request and the end of the request.
+#  
+# FFExitRequest <item> <value>
+# 		 This causes the child process to be terminated of the "item" increases by
+#		      "value" (or more) between the begining of the request and the end.
+#
+# FFWarnChild	<item> <value>
+# 		This warns if the "item" exceeds "value" between when the child is originally initialized and
+#		the end of the request.
+#
+# FFExitChild	<item> <value>
+# 		This causes the child process to be terminated if the increase in "item" exceeds "value" between
+#		the initialization of the child process and the end of the request.
+#		
+# FFWarnIdle	<item> <value>
+# 		This warns if the "item" changes by "value" (or more) while the child process is between requests.
+#
+# FFExitIdle <item> <value>
+# 		This causes the child process to be terminated of the increase in "item" exceeds "value" while the
+#		child process is idle.
+#
+#		
+# FFWarnSession	<item> <value>
+# 		This warns if the "item" changes by "value" (or more) while the child process is between requests for the same 'session'
+#
+# FFExitSession <item> <value>
+# 		This causes the child process to be terminated of the increase in "item" exceeds "value" over the life 
+#		of the child process 'session'
+#
+# Example (used for debugging):
+#   FFEnable 	On
+#
+#   FFWarnRequest	Vmsize	20M
+#   FFWarnRequest	Rss	100
+#   FFWarnRequest	Fds	5
+#   FFWarnRequest	minflt	10
+#   FFWarnRequest	cminflt	5
+#   FFWarnRequest	majflt	2
+#   FFWarnRequest	cmajflt	1
+#
+#   FFWarnRequest	Tick	1
+#   FFWarnIdle	Tick	5
+#   FFExitIdle	Tick	1m
+
+# 86400 is 24 hours.
+#   FFWarnChild	Tick	1hour
+#   FFTimeFmt		%c
